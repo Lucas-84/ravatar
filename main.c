@@ -12,13 +12,15 @@
  *      REPORT_READ
  *      REPORT_ALLOC
  *      REPORT_OPEN
+ *      REPORT_CLOSE
  */
  #define DEFINE_REPORTS                                      \
     NEW_REPORT(REPORT_NULL,  "No error.")                    \
     NEW_REPORT(REPORT_ARGS,  "Bad arguments.")               \
     NEW_REPORT(REPORT_READ,  "Reading error.")               \
     NEW_REPORT(REPORT_ALLOC, "Dynamic allocation fail.")     \
-    NEW_REPORT(REPORT_OPEN,  "Unable to open a file.")
+    NEW_REPORT(REPORT_OPEN,  "Unable to open a file.")       \
+    NEW_REPORT(REPORT_CLOSE, "Unable to close a file.")
 
 enum report
 {
@@ -91,7 +93,7 @@ struct bitmap
  * Converts the position n in the image array data structure to an offset
  * in bytes, taking in account the number of bits per pixel p.
  */
-#define BMP_CONVERT(p, n)                          \
+#define BMP_CONVERT(p, n)                       \
     (n * ((p) / CHAR_BIT))
 
 /*
@@ -228,7 +230,7 @@ static enum report putpixel(const struct bitmap *const p,
 }
 
 /*
- * Draw a square of a given size at column x and line y in the bitmap p, with
+ * Draws a square of a given size at column x and line y in the bitmap p, with
  * the color incated by red, green and blue.
  * Return value:
  *      REPORT_NULL
@@ -267,7 +269,8 @@ static enum report draw(const struct bitmap *const p,
 
 /*
  * Performs saturated addition on op1 and op2.
- * Return value: result of the operation.
+ * Return value: 
+ *     result of the operation.
  */
 static unsigned char add(const unsigned char op1,
                          const unsigned char op2)
@@ -352,8 +355,19 @@ int main(int argc, char *argv[])
                 }
             }
 
-            save(&src, dst);
-            fclose(dst);
+            if ((error = save(&src, dst)) == REPORT_NULL)
+            {
+                if (fclose(dst) == EOF)
+                {
+                    notice(REPORT_CLOSE);
+                    res = EXIT_FAILURE;
+                }
+            }
+            else
+            {
+                notice(error);
+                res = EXIT_FAILURE;
+            }
         }
         else
         {
